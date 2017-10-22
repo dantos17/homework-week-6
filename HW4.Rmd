@@ -1,0 +1,114 @@
+---
+title: "HW4 Assignment"
+author: "Dani Antos"
+date: "October 21, 2017"
+output: html_document
+---
+
+```{r}
+z.prop.test <- function(n1, p1, p0, n2 = NULL, p2 = NULL,
+                  alternative = c("two.sided", "less", "greater"), conf.level = 0.95)
+  
+  { 
+  OK <- complete.cases(p1, n1, p0)
+  p1 <- p1[OK]
+  n1 <- n1[OK]
+  p0 <- p0[OK]
+  
+  if (any(n1*p1 < 5))
+	warning("n1 x p1 is not greater than 5")
+    if (any(n1*(1-p1) < 5))
+	warning("assumption is not met")
+	 {
+
+if(alternative== "less") {
+  if(is.null(c(n2, p2))) {
+    z <- (p1-p0)/sqrt((p0*(1-p0))/n1)
+  lower <- p1 - qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  upper <- p1 + qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  ci <- c(lower, upper)
+  ci
+   p <- pnorm(z, lower.tail = TRUE)
+  }
+  else {
+    pstar <- p1 + p2
+  pci <- p2 - p1
+  ntotal <- n1 + n2
+  z <- (p2 - p1)/sqrt((pstar * (1 - pstar)) * (1/n1 + 1/n2))
+  lower <- pci- qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  upper <- pci + qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  ci <- c(lower, upper)
+  ci
+  p <- pnorm(z, lower.tail = TRUE)
+  }
+}
+
+if(alternative== "greater") {
+  if( is.null(c(n2, p2))) {
+    z <- (p1-p0)/sqrt((p0*(1-p0))/n1)
+  lower <- p1 - qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  upper <- p1 + qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  ci <- c(lower, upper)
+  ci
+  p <- pnorm(z, lower.tail = FALSE)
+  }
+  else {
+    pstar <- p1 + p2
+  pci <- p2 - p1
+  ntotal <- n1 + n2
+  z <- (p2 - p1)/sqrt((pstar * (1 - pstar)) * (1/n1 + 1/n2))
+  lower <- pci- qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  upper <- pci + qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  ci <- c(lower, upper)
+  ci
+  p <- pnorm(z, lower.tail = FALSE)
+  }
+}
+	   
+else {
+  if(is.null(c(n2, p2))) {
+    z <- (p1-p0)/sqrt((p0*(1-p0))/n1)
+  lower <- p1 - qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  upper <- p1 + qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  ci <- c(lower, upper)
+  ci
+  if (alternative == "two.sided") {
+            if (z > 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = FALSE)
+                } 
+            if (z < 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = TRUE)
+                } 
+        }
+  }
+  else {
+     pstar <- p1 + p2
+  pci <- p2 - p1
+  ntotal <- n1 + n2
+  z <- (p2 - p1)/sqrt((pstar * (1 - pstar)) * (1/n1 + 1/n2))
+  lower <- pci- qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  upper <- pci + qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  ci <- c(lower, upper)
+  ci
+  if (alternative == "two.sided") {
+            if (z > 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = FALSE)
+                } 
+            if (z < 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = TRUE)
+                }
+  }
+  }
+}
+	}
+        
+  RVAL <- list(statistic = z,
+		 p.value = as.numeric(p),
+		 conf.int = ci)
+    return(RVAL) }
+```
+

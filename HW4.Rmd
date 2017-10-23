@@ -4,7 +4,84 @@ author: "Dani Antos"
 date: "October 21, 2017"
 output: html_document
 ---
+Just a preface, I have code for two different functions in question 1, and the second part of question 2 got a little funky at the end.
 
+#Question 1
+```{r}
+z.prop.test <- function(n1, p1, p0, n2 = NULL, p2 = NULL,
+                  alternative = c("two.sided", "less", "greater"), conf.level = 0.95)
+  
+  { 
+  OK <- complete.cases(p1, n1, p0)
+  p1 <- p1[OK]
+  n1 <- n1[OK]
+  p0 <- p0[OK]
+  
+  if (any(n1*p1 < 5))
+	warning("n1 x p1 is not greater than 5")
+    if (any(n1*(1-p1) < 5))
+	warning("assumption is not met")
+	 {
+        
+if(is.null(c(n2, p2))) {
+  z <- (p1-p0)/sqrt((p0*(1-p0))/n1)
+  lower <- p1 - qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  upper <- p1 + qnorm(0.975) * sqrt(p1 * (1 - p1)/n1)
+  ci <- c(lower, upper)
+  ci
+  
+        if (alternative == "less") {
+            p <- pnorm(z, lower.tail = TRUE)  
+        }
+        if (alternative == "greater") {
+            p <- pnorm(z, lower.tail = FALSE)
+        }
+        if (alternative == "two.sided") {
+            if (z > 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = FALSE)
+                } 
+            if (z < 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = TRUE)
+                } 
+        }
+    }
+    
+else {
+  pstar <- p1 + p2
+  pci <- p2 - p1
+  ntotal <- n1 + n2
+  z <- (p2 - p1)/sqrt((pstar * (1 - pstar)) * (1/n1 + 1/n2))
+  lower <- pci- qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  upper <- pci + qnorm(0.975) * sqrt(pci * (1 - pci)/ntotal)
+  ci <- c(lower, upper)
+  ci
+  
+        if (alternative == "less") {
+            p <- pnorm(z, lower.tail = TRUE)  
+        }
+        if (alternative == "greater") {
+            p <- pnorm(z, lower.tail = FALSE)
+        }
+        if (alternative == "two.sided") {
+            if (z > 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = FALSE)
+                } 
+            if (z < 0) 
+                {
+                  p <- 2 * pnorm(z, lower.tail = TRUE)
+                } 
+        }
+    }   
+}
+  RVAL <- list(statistic = z,
+		 p.value = as.numeric(p),
+		 conf.int = ci)
+    return(RVAL) }
+```
+So this code works, but doesn't do anything if you don't specify "alternative =", so the following code is my idea for fixing it. Instead of doing an if, else loop for the one sample and two sample tests, I made an if, if, else loop for the alternative options (setting up "else" to be the two sided test). Then within each of those loops, I made another if, else loop corresponding to the number of samples. That still didn't work, and I couldn't find any helpful answers when I googled how to set a default in a function.
 ```{r}
 z.prop.test <- function(n1, p1, p0, n2 = NULL, p2 = NULL,
                   alternative = c("two.sided", "less", "greater"), conf.level = 0.95)
@@ -110,5 +187,102 @@ else {
 		 p.value = as.numeric(p),
 		 conf.int = ci)
     return(RVAL) }
+```
+
+
+#Question 2
+Model for Max Longevity ~ Brain Size
+```{r echo=TRUE}
+library(curl)
+library(ggplot2)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/KamilarAndCooperData.csv")
+d <- read.csv(f, header = TRUE, stringsAsFactors = FALSE)
+head(d)
+names(d)
+m <- lm(data = d, MaxLongevity_m ~ Brain_Size_Species_Mean)
+h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean))
+df <- data.frame(cbind(d$Brain_Size_Species_Mean, d$MaxLongevity_m, h_hat))
+names(df) <- c("x", "y", "yhat")
+head(df)
+ci <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "confidence", 
+    level = 0.90) 
+head(ci)
+df <- cbind(df, ci)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
+head(df)
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "prediction", 
+    level = 0.90) 
+head(pi)
+df <- cbind(df, pi)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr", 
+    "PIupr")
+head(df)
+
+
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=400, aes(label = "1.218x + 248.952")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red")) #I read on stack overflow that scale_color_manual can be used to make a legend so I wrote my ggplot code exactly like the example did, and the only thing that changed was the color of my lines
+g
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=400, aes(label = "1.218x + 248.952"))
+g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red") #+ legend("right", c("CILower","CIUpper","PILower","PIUpper")) #you used this in Module 13, and I know you weren't using ggplot but I couldn't get anything else to work so I tried it here as well.
+g
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=400, aes(label = "1.218x + 248.952"))
+g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
+g
+yhat <- (1.218*800) + 248.952
+yhat
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = 800), interval = "prediction", 
+    level = 0.90)
+pi
+```
+
+Model for log(Max Longevity) ~ log(Brain Size) **note** pls only pay attention to the last graph, the other ones were just trials and failures
+```{r}
+d$MaxLongevity_m <- log(d$MaxLongevity_m)
+d$Brain_Size_Species_Mean <- log(d$Brain_Size_Species_Mean)
+m <- lm(log(MaxLongevity_m) ~ log(Brain_Size_Species_Mean), data=d) #log
+m
+h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean))
+df <- data.frame(cbind(d$Brain_Size_Species_Mean, d$MaxLongevity_m, h_hat))
+names(df) <- c("x", "y", "yhat")
+head(df)
+ci <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "confidence", 
+    level = 0.90) 
+head(ci)
+df <- cbind(df, ci)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
+head(df)
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "prediction", 
+    level = 0.90) 
+head(pi)
+df <- cbind(df, pi)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr", 
+    "PIupr")
+head(df)
+
+g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
+g #I read on stack overflow that scale_color_manual can be used to make a legend so I wrote my ggplot code exactly like the example did, and the only thing that changed was the color of my lines
+
+g <- ggplot(data = d, aes(x = d$Brain_Size_Species_Mean, y = d$MaxLongevity_m))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790"))
+g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
+g #something is going wrong here but I don't know how to fix it, I think I've gone through every step of my code.
+yhat <- (0.2341*800) + 4.8790
+yhat
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = 800), interval = "prediction", 
+    level = 0.90)
+pi #this worked before but it isn't now, and I'm just getting very frustrated after working on this for over 6 hours so I'm leaving it here.
 ```
 
